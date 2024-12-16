@@ -52,7 +52,6 @@ android {
 dependencies {
 
 //    implementation(libs.androidx.core.ktx)
-    implementation("androidx.core:core-ktx:1.12.0")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -67,4 +66,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //Added
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.navigation:navigation-compose:2.7.6")
 }
