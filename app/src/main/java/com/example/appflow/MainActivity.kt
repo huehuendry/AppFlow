@@ -1,4 +1,5 @@
 package com.example.appflow
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,8 +14,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import androidx.navigation.navArgument
+import com.example.appflow.model.BottomNavItem
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 
 /**
  * MainActivity is the entry point of the application. It sets up the navigation and displays
@@ -24,43 +29,88 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Start the navigation with the NavHost
             AppFlowNavigation()
         }
     }
 }
 
-/**
- * AppFlowNavigation is the composable function that sets up navigation for the app.
- * It manages the navigation between the main screen and the details screen.
- */
+val bottomNavItems = listOf(
+    BottomNavItem("main_screen", "Home"),
+    BottomNavItem("about_screen", "About"),
+    BottomNavItem("details_screen", "Details")
+)
+
 @Composable
 fun AppFlowNavigation() {
     // Create a NavController to manage the navigation
     val navController = rememberNavController()
 
-    // Set up the NavHost with different screen routes
-    NavHost(navController = navController, startDestination = "main_screen") {
-        // Main screen composable
-        composable("main_screen") {
-            AppFlowMainScreen(navController)
+    // Scaffold to hold the BottomNavigation bar
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(navController)
         }
-        // Details screen composable with a route argument for the counter value
-        composable(
-            route = "details_screen/{counter}",
-            arguments = listOf(navArgument("counter") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val counter = backStackEntry.arguments?.getInt("counter") ?: 0
-            DetailsScreen(counter)
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "main_screen",
+            Modifier.padding(innerPadding)
+        ) {
+            // Main screen composable
+            composable("main_screen") {
+                AppFlowMainScreen(navController)
+            }
+            // About screen composable
+            composable("about_screen") {
+                AboutScreen()
+            }
+            // Details screen composable
+            composable(
+                route = "details_screen/{counter}",
+                arguments = listOf(navArgument("counter") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val counter = backStackEntry.arguments?.getInt("counter") ?: 0
+                DetailsScreen(counter)
+            }
         }
     }
 }
 
-/**
- * AppFlowMainScreen is the main screen of the app.
- * It displays a welcome message, a button to increment a counter, and a button to navigate to the details screen.
- * @param navController The navigation controller used for navigation between screens.
- */
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    NavigationBar {
+        val currentRoute = currentRoute(navController)
+
+        bottomNavItems.forEach { navItem ->
+            NavigationBarItem(
+                label = { Text(navItem.label) },
+                selected = currentRoute == navItem.route,
+                onClick = {
+                    // Navigate to the selected screen
+                    if (navItem.route == "details_screen") {
+                        // Navigate to details_screen with a default counter value (e.g., 0)
+                        navController.navigate("details_screen/0") {
+                            popUpTo("main_screen") { inclusive = false }
+                        }
+                    } else {
+                        navController.navigate(navItem.route) {
+                            popUpTo("main_screen") { inclusive = false }
+                        }
+                    }
+                },
+                icon = {} // Optional: Add icons here if needed
+            )
+        }
+    }
+}
+
+
+@Composable
+fun currentRoute(navController: NavController): String? {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    return navBackStackEntry?.destination?.route
+}
+
 @Composable
 fun AppFlowMainScreen(navController: NavController) {
     var counter by remember { mutableStateOf(0) }
@@ -96,10 +146,6 @@ fun AppFlowMainScreen(navController: NavController) {
     }
 }
 
-/**
- * DetailsScreen displays the details of the app, showing the number of times the button was clicked.
- * @param counter The number of times the button was clicked on the main screen.
- */
 @Composable
 fun DetailsScreen(counter: Int) {
     // Surface with a background color
@@ -120,6 +166,27 @@ fun DetailsScreen(counter: Int) {
     }
 }
 
+@Composable
+fun AboutScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(text = "About Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("This is the About Screen!", fontSize = 18.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+
+
+
+
 /**
  * Preview function for the main screen and details screen.
  * It allows you to preview the UI components in Android Studio.
@@ -128,4 +195,16 @@ fun DetailsScreen(counter: Int) {
 @Composable
 fun AppFlowNavigationPreview() {
     AppFlowNavigation()
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DetailsScreenPreview() {
+    DetailsScreen(counter = 5)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AboutScreenPreview() {
+    AboutScreen()
 }
