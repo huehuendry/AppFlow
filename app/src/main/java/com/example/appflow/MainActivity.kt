@@ -3,7 +3,14 @@ package com.example.appflow
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +27,17 @@ import androidx.navigation.navArgument
 import com.example.appflow.model.BottomNavItem
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * MainActivity is the entry point of the application. It sets up the navigation and displays
@@ -35,9 +53,9 @@ class MainActivity : ComponentActivity() {
 }
 
 val bottomNavItems = listOf(
-    BottomNavItem("main_screen", "Home"),
-    BottomNavItem("about_screen", "About"),
-    BottomNavItem("details_screen", "Details")
+    BottomNavItem("main_screen", "Home", Icons.Filled.Home),
+    BottomNavItem("about_screen", "About", Icons.Filled.Info ),
+    BottomNavItem("details_screen", "Details", Icons.AutoMirrored.Filled.List)
 )
 
 @Composable
@@ -53,9 +71,12 @@ fun AppFlowNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "main_screen",
+            startDestination = "splash_screen",
             Modifier.padding(innerPadding)
         ) {
+            composable("splash_screen") {
+                SplashScreen(navController = navController)
+            }
             // Main screen composable
             composable("main_screen") {
                 AppFlowMainScreen(navController)
@@ -98,12 +119,17 @@ fun BottomNavigationBar(navController: NavController) {
                         }
                     }
                 },
-                icon = {} // Optional: Add icons here if needed
+                icon = {
+                    Icon(
+                        imageVector = navItem.icon,
+                        contentDescription = navItem.label,
+                        tint = if (currentRoute == navItem.route) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
             )
         }
     }
 }
-
 
 @Composable
 fun currentRoute(navController: NavController): String? {
@@ -183,7 +209,58 @@ fun AboutScreen() {
     }
 }
 
+@Composable
+fun SplashScreen(navController: NavController) {
+    // Get the ViewModel instance
+    val viewModel: SplashViewModel = viewModel()
 
+    // Collect the readiness state from the ViewModel
+    val isReady by viewModel.isReady.collectAsState()
+
+    // Navigate to the main screen when resources are ready
+    LaunchedEffect(isReady) {
+        if (isReady) {
+            navController.navigate("main_screen") {
+                popUpTo("splash_screen") { inclusive = true }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        // Background image
+        Image(
+            painter = painterResource(id = R.drawable.bg_splash_stars), // Replace with your resource
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        Text(
+            text = "AppFlow",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        )
+    }
+}
+
+
+// ViewModel for managing resource loading
+class SplashViewModel : ViewModel() {
+    private val _isReady = MutableStateFlow(false)
+    val isReady: StateFlow<Boolean> = _isReady
+
+    init {
+        viewModelScope.launch {
+            // Simulate resource loading
+            delay(3000)
+            _isReady.value = true
+        }
+    }
+}
 
 
 
@@ -196,6 +273,12 @@ fun AboutScreen() {
 fun AppFlowNavigationPreview() {
     AppFlowNavigation()
 }
+
+//@Preview(showBackground = true)
+//@Composable
+//fun AppFlowMainScreenPreview() {
+//    AppFlowMainScreen()
+//}
 
 @Preview(showBackground = true)
 @Composable
