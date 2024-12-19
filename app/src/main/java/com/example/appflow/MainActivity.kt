@@ -3,10 +3,13 @@ package com.example.appflow
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -27,8 +30,6 @@ import androidx.navigation.navArgument
 import com.example.appflow.model.BottomNavItem
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.ViewModel
@@ -69,10 +70,15 @@ fun AppFlowNavigation() {
             BottomNavigationBar(navController)
         }
     ) { innerPadding ->
+        // Apply the innerPadding to the NavHost modifier
         NavHost(
             navController = navController,
             startDestination = "splash_screen",
-            Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding), // Use innerPadding here
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(700)) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(700)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(700)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(700)) }
         ) {
             composable("splash_screen") {
                 SplashScreen(navController = navController)
@@ -91,11 +97,14 @@ fun AppFlowNavigation() {
                 arguments = listOf(navArgument("counter") { type = NavType.IntType })
             ) { backStackEntry ->
                 val counter = backStackEntry.arguments?.getInt("counter") ?: 0
-                DetailsScreen(counter)
+                DetailsScreen(navController, counter)
             }
         }
     }
 }
+
+
+
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
@@ -172,21 +181,30 @@ fun AppFlowMainScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailsScreen(counter: Int) {
-    // Surface with a background color
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+fun DetailsScreen(navController: NavController, counter: Int) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Details") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Details screen title
             Text(text = "Details Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
-            // Display the counter value passed from the main screen
             Text("You clicked the button $counter times!", fontSize = 18.sp)
         }
     }
@@ -283,7 +301,8 @@ fun AppFlowNavigationPreview() {
 @Preview(showBackground = true)
 @Composable
 fun DetailsScreenPreview() {
-    DetailsScreen(counter = 5)
+    val mockNavController = rememberNavController()
+    DetailsScreen(navController = mockNavController, counter = 5)
 }
 
 @Preview(showBackground = true)
